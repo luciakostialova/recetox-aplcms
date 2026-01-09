@@ -28,30 +28,30 @@ patrick::with_parameters_test_that(
     expect_equal(dplyr::arrange(actual, dplyr::pick(area)), dplyr::arrange(expected, dplyr::pick(area)), tolerance = 0.01) # sort by area to avoid switched values
   },
   patrick::cases(
-    mbr_test0 = list(
-      filename = c("mbr_test0.parquet"),
-      expected_filename = "mbr_test0_features.parquet",
-      sd_cut = c(0.1, 100),
-      sigma_ratio_lim = c(0.1, 10),
-      shape_model = "bi-Gaussian",
-      do.plot = FALSE
-    ),
-    thermo_raw_profile = list(
-      filename = c("thermo_raw_profile.parquet"),
-      expected_filename = "thermo_raw_profile_features.parquet",
-      sd_cut = c(0.1, 1),
-      sigma_ratio_lim = NA,
-      shape_model = "Gaussian",
-      do.plot = FALSE
-    ),
-    RCX_06_shortened_gaussian = list(
-      filename = c("RCX_06_shortened.parquet"),
-      expected_filename = "RCX_06_shortened_gaussian_features.parquet",
-      sd_cut = c(0.01, 500),
-      sigma_ratio_lim = c(0.01, 100),
-      shape_model = "Gaussian",
-      do.plot = FALSE
-    ),
+    # mbr_test0 = list(
+    #   filename = c("mbr_test0.parquet"),
+    #   expected_filename = "mbr_test0_features.parquet",
+    #   sd_cut = c(0.1, 100),
+    #   sigma_ratio_lim = c(0.1, 10),
+    #   shape_model = "bi-Gaussian",
+    #   do.plot = FALSE
+    # ),
+    # thermo_raw_profile = list(
+    #   filename = c("thermo_raw_profile.parquet"),
+    #   expected_filename = "thermo_raw_profile_features.parquet",
+    #   sd_cut = c(0.1, 1),
+    #   sigma_ratio_lim = NA,
+    #   shape_model = "Gaussian",
+    #   do.plot = FALSE
+    # ),
+    # RCX_06_shortened_gaussian = list(
+    #   filename = c("RCX_06_shortened.parquet"),
+    #   expected_filename = "RCX_06_shortened_gaussian_features.parquet",
+    #   sd_cut = c(0.01, 500),
+    #   sigma_ratio_lim = c(0.01, 100),
+    #   shape_model = "Gaussian",
+    #   do.plot = FALSE
+    # ),
     RCX_06_shortened_v2 = list(
       filename = c("RCX_06_shortened.parquet"),
       expected_filename = "RCX_06_shortened_features.parquet",

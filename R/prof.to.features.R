@@ -941,7 +941,8 @@ prof.to.features <- function(profile,
   aver_diff <- mean(diff(base.curve))  
 
   keys <- c("mz", "rt", "sd1", "sd2", "area")
-  peak_parameters <- matrix(0, nrow = 0, ncol = length(keys), dimnames = list(NULL, keys))
+  #peak_parameters <- matrix(0, nrow = 0, ncol = length(keys), dimnames = list(NULL, keys))
+  peak_parameters <- tibble(mz = numeric(), rt = numeric(), sd1 = numeric(), sd2 = numeric(), area = numeric())
   
   feature_groups <- split(profile, profile$group_number)
 
@@ -958,6 +959,7 @@ prof.to.features <- function(profile,
       time_weights <- all_diff_mean_rts[which(base.curve[, "base.curve"] %in% feature_group[2])]
       rt_peak_shape <- c(feature_group[1], feature_group[2], NA, NA, feature_group[3] * time_weights)
       peak_parameters <- rbind(peak_parameters, rt_peak_shape)
+      print('num_feat < 2')  # didn't happen
     } else {
       # find bandwidth for these particular range
       rt_range <- range(feature_group[, "rt"])
@@ -972,23 +974,44 @@ prof.to.features <- function(profile,
         rt_peak_shape <- compute_gaussian_peak_shape(rt_profile, bw, component_eliminate, BIC_factor, aver_diff)
       } else {
         rt_peak_shape <- bigauss.mix(rt_profile, sigma_ratio_lim = sigma_ratio_lim, bw = bw, moment_power = moment_power, peak_estim_method = peak_estim_method, eliminate = component_eliminate, BIC_factor = BIC_factor)$param[, c(1, 2, 3, 5)]
+        rt_peak_shape <- tibble(m=rt_peak_shape[[1]], sd1=rt_peak_shape[[2]], sd2=rt_peak_shape[[3]], area=rt_peak_shape[[4]])
+        #browser()
       }
 
-      if (is.null(nrow(rt_peak_shape))) {  
-        peak_parameters <- rbind(peak_parameters, c(median(feature_group[, "mz"]), rt_peak_shape))
+      if (nrow(rt_peak_shape) == 1) {  # single peak
+        #peak_parameters <- rbind(peak_parameters, c(median(feature_group[, "mz"]), rt_peak_shape))
+        peak_parameters <- dplyr::bind_rows(peak_parameters, tibble(
+          mz = median(feature_group[, "mz"]),
+          rt = rt_peak_shape$m,
+          sd1 = rt_peak_shape$sd1,
+          sd2 = rt_peak_shape$sd2,
+          area = rt_peak_shape$area
+        ))
+        #browser()
       }
-      else {
-        for (m in 1:nrow(rt_peak_shape))  # multiple peaks
+      else {  # multiple peaks
+        print('multiple') # doesn't happen
+        for (m in 1:nrow(rt_peak_shape))  
         {
           rt_diff <- abs(feature_group[, "rt"] - rt_peak_shape[m, 1])
-          peak_parameters <- rbind(peak_parameters, c(mean(feature_group[which(rt_diff == min(rt_diff)), 1]), rt_peak_shape[m, ]))
+          # peak_parameters <- rbind(peak_parameters, c(mean(feature_group[which(rt_diff == min(rt_diff)), 1]), rt_peak_shape[m, ]))
+          peak_parameters <- dplyr::bind_rows(peak_parameters, tibble(
+            mz = median(feature_group[, "mz"]),
+            rt = rt_peak_shape$m,
+            sd1 = rt_peak_shape$sd1,
+            sd2 = rt_peak_shape$sd2,
+            area = rt_peak_shape$area
+          ))
         }
       }
     }
   }
+  browser()  # for some reason the actual bi-gaussian has a lower number of peaks than the expected files.. WHY?, about a 1000 less
+  peak_parameters <- as.data.frame(peak_parameters)
   peak_parameters <- peak_parameters[order(peak_parameters[, "mz"], peak_parameters[, "rt"]), ]
   peak_parameters <- peak_parameters[which(apply(peak_parameters[, c("sd1", "sd2")], 1, min) > sd_cut[1] & apply(peak_parameters[, c("sd1", "sd2")], 1, max) < sd_cut[2]), ]
-  rownames(peak_parameters) <- NULL
+  
+  #rownames(peak_parameters) <- NULL
 
   if (do.plot) {
     plot_peak_summary(feature_groups, peak_parameters)
