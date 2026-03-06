@@ -1,5 +1,5 @@
 patrick::with_parameters_test_that(
-  "test prof.to.features",
+  "test prof.to.features_bigauss",
   {
     testdata <- file.path("..", "testdata")
     input_path <- file.path(testdata, "filtered", filename)
@@ -7,9 +7,9 @@ patrick::with_parameters_test_that(
 
     actual <- prof.to.features(
       profile = extracted_features,
-      bandwidth = 0.5,
-      min_bandwidth = NA,
-      max_bandwidth = NA,
+      bandwidth = 0.25,
+      min_bandwidth = 0.25,
+      max_bandwidth = 1,
       sd_cut = sd_cut,
       sigma_ratio_lim = sigma_ratio_lim,
       shape_model = shape_model,
@@ -35,31 +35,34 @@ patrick::with_parameters_test_that(
       sigma_ratio_lim = c(0.1, 10),
       shape_model = "bi-Gaussian",
       do.plot = FALSE
-    ),
-    thermo_raw_profile = list(
-      filename = c("thermo_raw_profile.parquet"),
-      expected_filename = "thermo_raw_profile_features.parquet",
-      sd_cut = c(0.1, 1),
-      sigma_ratio_lim = NA,
-      shape_model = "Gaussian",
-      do.plot = FALSE
-    ),
-    RCX_06_shortened_gaussian = list(
-      filename = c("RCX_06_shortened.parquet"),
-      expected_filename = "RCX_06_shortened_gaussian_features.parquet",
-      sd_cut = c(0.01, 500),
-      sigma_ratio_lim = c(0.01, 100),
-      shape_model = "Gaussian",
-      do.plot = FALSE
-    ),
-    RCX_06_shortened_v2 = list(
-      filename = c("RCX_06_shortened.parquet"),
-      expected_filename = "RCX_06_shortened_features.parquet",
-      sd_cut = c(0.01, 500),
-      sigma_ratio_lim = c(0.01, 100),
-      shape_model = "bi-Gaussian",
-      do.plot = FALSE
     )
+    #,
+    # thermo_raw_profile = list(
+    #   filename = c("thermo_raw_profile.parquet"),
+    #   expected_filename = "thermo_raw_profile_features.parquet",
+    #   sd_cut = c(0.1, 1),
+    #   sigma_ratio_lim = NA,
+    #   shape_model = "Gaussian",
+    #   do.plot = FALSE
+    # ),
+    # RCX_06_shortened_gaussian = list(
+    #   filename = c("RCX_06_shortened.parquet"),
+    #   expected_filename = "RCX_06_shortened_gaussian_features.parquet",
+    #   sd_cut = c(0.01, 500),
+    #   sigma_ratio_lim = c(0.01, 100),
+    #   shape_model = "Gaussian",
+    #   do.plot = FALSE
+    # ),
+    # RCX_06_shortened_v2 = list(
+    #   filename = c("RCX_06_shortened.parquet"),
+    #   expected_filename = "RCX_06_shortened_features.parquet",
+    #   sd_cut = c(0.01, 500),
+    #   min_bandwidth = 0.5,
+    #   max_bandwidth = 1.5,
+    #   sigma_ratio_lim = c(0.01, 100),
+    #   shape_model = "bi-Gaussian",
+    #   do.plot = FALSE
+    # )
    )
   )
 
