@@ -227,7 +227,7 @@ get_num_workers <- function() {
 #' @export
 read_parquet_files <- function(filename, folder, pattern) {
   testdata <- file.path("..", "testdata")
-
+  
   input <- lapply(filename, function(x) {
     tibble::as_tibble(arrow::read_parquet(file.path(testdata, folder, paste0(x, pattern))))
   })

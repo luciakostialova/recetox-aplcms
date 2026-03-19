@@ -63,7 +63,7 @@ patrick::with_parameters_test_that(
     #   file.path(testdata, "recovered", "recovered-corrected"),
     #   lapply(files, function(x) {paste0(x, ".parquet")})
     # )
-
+    
     extracted_recovered_expected <- read_parquet_files(files, file.path("recovered", "recovered-extracted"), ".parquet")
     corrected_recovered_expected <- read_parquet_files(files, file.path("recovered", "recovered-corrected"), ".parquet")
 

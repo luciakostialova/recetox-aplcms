@@ -86,7 +86,7 @@ compute_gaussian_peak_shape <- function(rt_profile, bw, component_eliminate, BIC
   return(rt_peak_shape)
 }
 
-#' Compute 'a' parameter of bi-gaussian chromatographic peak shape
+#' Compute 'a' parameter of bi-gaussian chromatographic peak shape - the m param
 #' @description
 #' This function solves peak summit using the x, t, peak summit from the previous step, 
 #' and sigma.1, and sigma.2 (original authors' comment).
@@ -523,7 +523,7 @@ bigauss.mix <- function(rt_profile, moment_power = 1, do.plot = FALSE, sigma_rat
 
         # E step
         fit <- compute_e_step(rt_profile, params[,'miu'], params[,'s1'], params[,'s2'], params[,'delta'])
-
+        
         # Elimination step
         fit <- fit / apply(fit, 1, sum)
         fit2 <- fit * rt_profile[, "intensity"]

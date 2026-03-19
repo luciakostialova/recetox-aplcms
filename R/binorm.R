@@ -29,7 +29,7 @@ validate_model_method_input <- function(shape_model, peak_estim_method) {
 #'   \item max_bandwidth - float - Maximum bandwidth
 #' }
 #' @export
-preprocess_bandwidth <- function(min_bandwidth, max_bandwidth, profile) {
+preprocess_bandwidth.new <- function(min_bandwidth, max_bandwidth, profile) {
   if (is.na(min_bandwidth)) {
     min_bandwidth <- diff(range(profile[, 'rt'], na.rm = TRUE)) / 60
   }
@@ -48,7 +48,7 @@ preprocess_bandwidth <- function(min_bandwidth, max_bandwidth, profile) {
 #' @param x float - vector of numerical values
 #' @return Returns a vector
 #' @export
-rev_cum_sum <- function(x) {
+rev_cum_sum.new <- function(x) {
   x <- rev(x)
   return(rev(cumsum(x)))
 }
@@ -58,7 +58,7 @@ rev_cum_sum <- function(x) {
 #' @param left_sigma_ratio_lim Left-standard deviation of the bi-Gaussian function.
 #' @return Returns end bound.
 #' @export
-compute_start_bound <- function(x, left_sigma_ratio_lim) {
+compute_start_bound.new <- function(x, left_sigma_ratio_lim) {
   start_bound <- 1  
   len_x <- length(x)
   idx <- which(x >= left_sigma_ratio_lim / (left_sigma_ratio_lim + 1) * x[len_x])
@@ -73,7 +73,7 @@ compute_start_bound <- function(x, left_sigma_ratio_lim) {
 #' @param right_sigma_ratio_lim Right-standard deviation of the bi-Gaussian function.
 #' @return Returns end bound.
 #' @export
-compute_end_bound <- function(x, right_sigma_ratio_lim) {
+compute_end_bound.new <- function(x, right_sigma_ratio_lim) {
   len_x <- length(x)
   end_bound <- len_x - 1
   idx <- which(x <= right_sigma_ratio_lim / (right_sigma_ratio_lim + 1) * x[len_x])
@@ -93,9 +93,9 @@ compute_end_bound <- function(x, right_sigma_ratio_lim) {
 #'   \item end - end bound
 #'}
 #' @export
-compute_bounds <- function(x, sigma_ratio_lim) {
-  start <- compute_start_bound(x, sigma_ratio_lim[1])
-  end <- compute_end_bound(x, sigma_ratio_lim[2])
+compute_bounds.new <- function(x, sigma_ratio_lim) {
+  start <- compute_start_bound.new(x, sigma_ratio_lim[1])
+  end <- compute_end_bound.new(x, sigma_ratio_lim[2])
   return(list(start = start, end = end))
 }
 
@@ -107,11 +107,11 @@ compute_bounds <- function(x, sigma_ratio_lim) {
 #' @param apply_mask - boolean - whether to apply threshold mask to the output vector.
 #' @return Returns vector of numeric differences between neighbouring values.
 #' @export
-compute_dx <- function(x, apply_mask=TRUE) {
+compute_dx.new <- function(x, apply_mask=TRUE) {
   l <- length(x)
   diff_x <- diff(x)
   if (l == 2) {
-      dx <- rep(diff_x, 2)
+    dx <- rep(diff_x, 2)
   } else {
     dx <- c(
       x[2] - x[1],
@@ -139,7 +139,7 @@ compute_dx <- function(x, apply_mask=TRUE) {
 #' @param base.curve Matrix that contains rts of feature in the same rt cluster.
 #' @return dataframe with two columns
 #' @export
-compute_chromatographic_profile <- function(profile, base.curve) {
+compute_chromatographic_profile.new <- function(profile, base.curve) {
   rt_range <- range(profile[, "rt"])
   rt_profile <- base.curve %>%
     dplyr::filter(dplyr::between(rt, min(rt_range), max(rt_range))) %>% dplyr::mutate(intensity = 0)
@@ -152,11 +152,11 @@ compute_chromatographic_profile <- function(profile, base.curve) {
 #' @param d - float - a vector of \emph{y} values in a gaussian curve.
 #' @return scale - float - a vector of scaled intensity values.
 #' @export
-compute_scale <- function(y, d) {
+compute_scale.new <- function(y, d) {
   dy_ratio <- d^2 * log(y / d)
   dy_ratio[is.na(dy_ratio)] <- 0
   dy_ratio[is.infinite(dy_ratio)] <- 0
-
+  
   scale <- exp(sum(dy_ratio) / sum(d^2))
   scale <- sum(y * d) / sum(d^2)
   return(scale)
@@ -176,43 +176,45 @@ compute_scale <- function(y, d) {
 #'   \item estimated total signal strength (total area of the estimated normal curve)
 #'}
 #' @export
-bigauss.esti <- function(x, y, moment_power = 1, do.plot = FALSE, sigma_ratio_lim = c(0.3, 3)) {
+bigauss.esti.new <- function(x, y, moment_power = 1, do.plot = FALSE, sigma_ratio_lim = c(0.3, 3)) {
   # even producing a dataframe with x and y as columns without actually using it causes the test to run forever
   sel <- which(y > 1e-10)
   if (length(sel) < 2) return (c(median(x), 1, 1, 0))
-
+  
   x <- x[sel]
   y <- y[sel]
-
+  
   y.0 <- y
   max.y.0 <- max(y.0, na.rm = TRUE)
   y <- (y / max.y.0)^moment_power
-
-  dx <- compute_dx(x)
+  
+  dx <- compute_dx.new(x)
   # why ?
   y.cum <- cumsum(y * dx)
   x.y.cum <- cumsum(y * x * dx)
   xsqr.y.cum <- cumsum(y * x^2 * dx)
-
-  y.cum.rev <- rev_cum_sum(y * dx)
-  x.y.cum.rev <- rev_cum_sum(x * y * dx)
-  xsqr.y.cum.rev <- rev_cum_sum(y * x^2 * dx)
-
-  bounds <- compute_bounds(y.cum, sigma_ratio_lim)
+  
+  y.cum.rev <- rev_cum_sum.new(y * dx)
+  x.y.cum.rev <- rev_cum_sum.new(x * y * dx)
+  xsqr.y.cum.rev <- rev_cum_sum.new(y * x^2 * dx)
+  
+  bounds <- compute_bounds.new(y.cum, sigma_ratio_lim)
   end <- bounds$end
   start <- bounds$start
-
+  
+  # miu estimation
   if (end <= start) {
     miu <- min(mean(x[start:end]), x[max(which(y.cum.rev > 0))])
   } else {
-    m.candi <- x[start:end] + diff(x[start:(end + 1)]) / 2
+    m.candi <- x[start:end] + diff(x[start:(end + 1)]) / 2  # candidate miu values
     rec <- matrix(numeric(0), nrow = 0, ncol = 3)
-
+    
     s1 <- sqrt((xsqr.y.cum[start:end] + m.candi^2 * y.cum[start:end] - 2 * m.candi * x.y.cum[start:end]) / y.cum[start:end])
     s2 <- sqrt((xsqr.y.cum.rev[start:end + 1] + m.candi^2 * y.cum.rev[start:end + 1] - 2 * m.candi * x.y.cum.rev[start:end + 1]) / y.cum.rev[start:end + 1])
     rec <- rbind(rec, cbind(s1, s2, y.cum[start:end] / y.cum.rev[start:end + 1]))
-
-    d <- log(rec[,1] / rec[,2]) - log(rec[,3])
+    # save estimated sigmas based on candidate miu
+    
+    d <- log(rec[,1] / rec[,2]) - log(rec[,3])  # compute log difference of variances - log(ratio)
     if (min(d, na.rm = TRUE) * max(d, na.rm = TRUE) < 0) {
       sel <- c(which(d == max(d[d < 0]))[1], which(d == min(d[d >= 0])))
       miu <- (sum(abs(d[sel]) * m.candi[sel])) / (sum(abs(d[sel])))
@@ -221,29 +223,24 @@ bigauss.esti <- function(x, y, moment_power = 1, do.plot = FALSE, sigma_ratio_li
       miu <- m.candi[which(d == min(d, na.rm = TRUE))[1]]
     }
   }
-
+  
   sel1 <- which(x < miu)
   sel2 <- which(x >= miu)
-  s1 <- sqrt(sum((x[sel1] - miu)^2 * y[sel1] * dx[sel1]) / sum(y[sel1] * dx[sel1]))
-  s2 <- sqrt(sum((x[sel2] - miu)^2 * y[sel2] * dx[sel2]) / sum(y[sel2] * dx[sel2]))
-
+  s1 <- sqrt(sum((x[sel1] - miu)^2 * y[sel1] * dx[sel1]) / sum(y[sel1] * dx[sel1]))  # as in paper
+  s2 <- sqrt(sum((x[sel2] - miu)^2 * y[sel2] * dx[sel2]) / sum(y[sel2] * dx[sel2]))  # as in paper
+  
   s1 <- s1 * sqrt(moment_power)
   s2 <- s2 * sqrt(moment_power)
-
+  
   d <- dbinorm(x, A=1, miu = miu, sigma1 = s1, sigma2=s2)  # this density should integrate to 1
   y <- y.0
-  delta <- compute_scale(y, d)
-
-  if (do.plot) {
-    plot(x, y)
-    abline(v = miu)
-    lines(x[y > 0], d * delta, col = "red")
-  }
+  delta <- compute_scale.new(y, d)
+  
   to.return <- c(miu, s1, s2, delta)
-  if (sum(is.na(to.return)) > 0) {
+  if (sum(is.na(to.return)) > 0) {  
     miu <- sum(x * y) / sum(y)
-    s1 <- s2 <- sum(y * (x - miu)^2) / sum(y)
-    delta <- sum(y) / s1
+    s1 <- s2 <- sum(y * (x - miu)^2) / sum(y)  # what
+    delta <- sum(y) / s1  # what
     to.return <- c(miu, s1, s2, delta)
   }
   
@@ -263,15 +260,15 @@ bigauss.esti <- function(x, y, moment_power = 1, do.plot = FALSE, sigma_ratio_li
 #' }
 #' probably a matrix is better though
 #' @export
-compute_initiation_params <- function(rt_profile, pks, vlys, apex, dx) {
+compute_initiation_params_new <- function(rt_profile, pks, vlys, apex, dx) {
   miu <- s1 <- s2 <- delta <- pks
   for (i in 1:length(miu)) {
     ind.1 <- which(rt_profile[, "rt"] >= max(vlys[vlys < miu[i]]) & rt_profile[, "rt"] < miu[i])
     s1[i] <- sqrt(sum((rt_profile[ind.1, "rt"] - miu[i])^2 * rt_profile[ind.1, "intensity"] * dx[ind.1]) / sum(rt_profile[ind.1, "intensity"] * dx[ind.1]))
-
+    
     ind.2 <- which(rt_profile[, "rt"] >= miu[i] & rt_profile[, "rt"] < min(vlys[vlys > miu[i]]))
     s2[i] <- sqrt(sum((rt_profile[ind.2, "rt"] - miu[i])^2 * rt_profile[ind.2, "intensity"] * dx[ind.2]) / sum(rt_profile[ind.2, "intensity"] * dx[ind.2]))
-
+    
     # delta[i] <- (sum(rt_profile[ind.1, "intensity"] * dx[ind.1]) + sum(rt_profile[ind.2, "intensity"] * dx[ind.2])) / 
     # ((sum(dnorm(rt_profile[ind.1, "rt"], mean = miu[i], sd = s1[  i])) * s1[i] / 2) + (sum(dnorm(rt_profile[ind.2, "rt"], mean = miu[i], sd = s2[i])) * s2[i] / 2))
     delta[i] <- apex[i] * sqrt(pi / 2) * (s1[i] + s2[i])
@@ -291,7 +288,8 @@ dbinorm <- function(rt, A, miu, sigma1, sigma2) {
 }
 
 #' Computes the expectation step of the EM method. no.
-#' Computes the fitted values of the binormal distribution
+#' Computes the fitted values of the binormal distribution.
+#' Each column should be the fitted distribution values to miu, sd and delta. 
 #' @param miu A vector of sorted RT-peak values at which the kernel estimate was computed - the peak mode location.
 #' @param rt_profile A matrix with two columns: "base.curve" (rt) and "intensity".
 #' @param delta Parameter computed by the initiation step.
@@ -299,9 +297,13 @@ dbinorm <- function(rt, A, miu, sigma1, sigma2) {
 #' @param s2 Parameter computed by the initiation step.
 #' @return A matrix of the fitted values to the distribution. 
 #' @export
-compute_e_step <- function(rt_profile, miu, s1, s2, delta) {
+compute_e_step_new <- function(rt_profile, miu, s1, s2, delta) {
   fit <- matrix(numeric(0), ncol = length(miu), nrow = length(rt_profile[, "rt"])) # this is the matrix of fitted values
-  for (i in 1:length(miu)) fit[, i] <- dbinorm(rt_profile[i, "rt"], A=delta[i], miu = miu[i], sigma1 = s1[1], sigma2=s2[i])
+  cuts <- c(-Inf, miu, Inf)
+  for (j in 2:length(cuts)) {
+    ind <- which(dplyr::between(rt_profile[, "rt"], cuts[j - 1], cuts[j]))
+    for (i in 1:length(miu)) fit[ind, i] <- dbinorm(rt_profile[ind, "rt"], A=delta[i], miu = miu[i], sigma1 = s1[1], sigma2=s2[i])
+  }
   fit[is.na(fit)] <- 0
   return(fit)
 }
@@ -322,16 +324,16 @@ compute_e_step <- function(rt_profile, miu, s1, s2, delta) {
 #'  models with more peaks are penalized more.
 #' @importFrom dplyr filter arrange
 #' @export
-bigauss.mix <- function(rt_profile, moment_power = 1, do.plot = FALSE, sigma_ratio_lim = c(0.1, 10), bw = c(15, 30, 60), eliminate = .05, max.iter = 25, peak_estim_method, BIC_factor = 2) {
+bigauss.mix.new <- function(rt_profile, moment_power = 1, do.plot = FALSE, sigma_ratio_lim = c(0.1, 10), bw = c(15, 30, 60), eliminate = .05, max.iter = 25, peak_estim_method, BIC_factor = 2) {
   results <- new("list")
   all.bw <- sort(bw)
   record.smoother <- setNames(vector("list", length(all.bw)), all.bw)  # record smoothed peaks and valleys
   record.bic <- all.bw  # record BIC for each bandwidth
-
+  
   rt_profile_unfiltered <- rt_profile  # keep for kernel smoothing for tests but consider removing - gaussian estimation smooths on filtered dataset - not consistent
   rt_profile <- data.frame(rt_profile) |> dplyr::filter(intensity > 1e-5) |> dplyr::arrange(rt)  
   peaks_count <- Inf
-
+  
   for (ind in length(all.bw):1)
   {
     # kernel smoothing, peak and valley detection
@@ -342,83 +344,91 @@ bigauss.mix <- function(rt_profile, moment_power = 1, do.plot = FALSE, sigma_rat
     apex <- this.smooth$y[turns$pks]
     vlys <- c(-Inf, this.smooth$x[turns$vlys], Inf)
     record.smoother[[as.character(bw)]] <- list(pks = pks, vlys = vlys)
-
+    
     results[[ind]] <- NA
     record.bic[ind] <- Inf
     params <- matrix(numeric(0), nrow = 0, ncol = 4, dimnames=list(NULL, c("miu", "s1", "s2", "delta")))
-
+    
     if (length(pks) != peaks_count) {
       peaks_count <- length(pks)
-      dx <- compute_dx(rt_profile[, "rt"], apply_mask = FALSE)
-
+      dx <- compute_dx.new(rt_profile[, "rt"], apply_mask = FALSE)
+      
       # initiation
-      initiation_params <- compute_initiation_params(rt_profile, pks, vlys, apex, dx)
+      initiation_params <- compute_initiation_params_new(rt_profile, pks, vlys, apex, dx)
       params <- rbind(params, cbind(pks, initiation_params[,'s1'], initiation_params[,'s2'], initiation_params[,'delta']))  # first estimate of miu is peak maximum loc
       params[is.na(params)] <- 1e-10  # why?
-
+      
       this.change <- Inf
       counter <- 0
-
+      
       while (this.change > 0.1 && counter <= max.iter) {
         counter <- counter + 1
         old.m <- params[,'miu']
+        old.params <- params
+        
+        # E step - find fitted peak values scaled by intensity
+        fit <- compute_e_step_new(rt_profile, params[,'miu'], params[,'s1'], params[,'s2'], params[,'delta'])  # matrix columns are the fitted values
 
-        # E step - find fitted values to intensity
-        fit <- compute_e_step(rt_profile, params[,'miu'], params[,'s1'], params[,'s2'], params[,'delta'])  # matrix columns are the fitted values
-
-        # Elimination step - why ? probably not correct
-        fit <- fit / apply(fit, 1, sum)  # normalise - why not just divide by delta ? OR it's Qj - ratio of component fit sum to sum of all comopnent fits
-        fit2 <- fit * rt_profile[, "intensity"]  # fit distribution to intensity  - proportion scaled to intensity
+        # Elimination step - why ?
+        fit <- fit / apply(fit, 1, sum)  # Qj ??
+        # normalise each values by sum of fitted values in every rt point, so that the sum of fitted values in every rt is 1
+        fit2 <- fit * rt_profile[, "intensity"]  # multiply proportions by intensity
         perc.explained <- apply(fit2, 2, sum) / sum(rt_profile[, "intensity"])  # how much data is explained by the fitted scaled component compared to observed intensity - q_ij
+        # sum column 'intensities multiplied by proportions' and divide by total intensity
         max.erase <- max(1, round(length(perc.explained) / 5))  # why this number. kinda arbitrary
-        to.erase <- which(perc.explained <= min(eliminate, perc.explained[order(perc.explained, na.last = FALSE)[max.erase]]))
-
-        if (length(to.erase) > 0) {
+        # eliminate components which don't explain data under certain percetnage threshold
+        to.erase <- which(perc.explained <= min(eliminate, perc.explained[order(perc.explained, na.last = FALSE)[max.erase]]))  # indices of components to remove
+                
+        if (length(to.erase) > 0) {  # remove the components
           old.m <- old.m[-to.erase]
           params <- params[-to.erase, , drop = FALSE]
           fit <- fit[, -to.erase]
           if (is.null(ncol(fit))) fit <- matrix(fit, ncol = 1)
-          fit <- fit / apply(fit, 1, sum)  # AGAIN why normalise by sum ? 
+          fit <- fit / apply(fit, 1, sum)  # divide so that sum of fitted components at each rt is 1 
         }
-
+        
         # M step: reestimate parameters of binorm
         for (i in 1:length(params[,1])) {  
           this.y <- rt_profile[, "intensity"] * fit[, i]  # probably wrong, need to be scaled by delta
           if (peak_estim_method == "moment") {
-            this.fit <- bigauss.esti(rt_profile[, "rt"], this.y, moment_power = moment_power, do.plot = FALSE, sigma_ratio_lim = sigma_ratio_lim)
+            this.params <- bigauss.esti.new(rt_profile[, "rt"], this.y, moment_power = moment_power, do.plot = FALSE, sigma_ratio_lim = sigma_ratio_lim)
           } else {
-            this.fit <- bigauss.esti.EM(rt_profile[, "rt"], this.y, do.plot = FALSE, sigma_ratio_lim = sigma_ratio_lim)
+            this.params <- bigauss.esti.new.EM(rt_profile[, "rt"], this.y, do.plot = FALSE, sigma_ratio_lim = sigma_ratio_lim)
           }
-          params[i, ] <- c(this.fit[1], this.fit[2], this.fit[3], this.fit[4])
+          params[i, ] <- c(this.params[1], this.params[2], this.params[3], this.params[4])
         }
 
         params[is.na(params[, 'delta']), 4] <- 0  # why?
         this.change <- sum((old.m - params[,'miu'])^2)  # amount of change - sum of squared differences - higher penalisation for differences thanks to square
-         # why not count change for all parameters?
+        # why not count change for all parameters?
       }
       # E step again
-      fit <- compute_e_step(rt_profile, params[,'miu'], params[,'s1'], params[,'s2'], params[,'delta'])
-
+      fit <- compute_e_step_new(rt_profile, params[,'miu'], params[,'s1'], params[,'s2'], params[,'delta'])
+      
       if (do.plot) {
         par(mfrow = c(ceiling(length(all.bw) / 2), 2), mar = c(1, 1, 1, 1))
         plot_rt_profile(rt_profile, bw, fit, params[,1])
       }
-
+      
       area <- params[,'delta']
       rss <- sum((rt_profile[, "intensity"] - apply(fit, 1, sum))^2)
       l <- length(rt_profile[, "rt"]) 
-      bic <- l * log(rss / l) + 4 * length(params[,'miu']) * log(l) * BIC_factor
+      bic <- l * log(rss / l) + 4 * length(params[,'miu']) * log(l) * BIC_factor      
+      # not sure, penalises mainly on length of params. why not just penalise based on rss ? 
       results[[ind]] <- cbind(params, area)
       record.bic[ind] <- bic
     }
   }
-
   sel <- order(record.bic, -all.bw)[1]
   record <- new("list")
   record$param <- results[[sel]]
   record$record.smoother <- record.smoother
   record$all.param <- results
   record$bic <- record.bic
+  
+  # cat(print(rt_profile), sep = "\n", file = "rt_profile.txt", append = TRUE)
+  # print(record$param)
+  # cat(record$param, sep = "\n", file = "param.txt", append = TRUE)
   return(record)
 }
 
@@ -450,42 +460,43 @@ bigauss.mix <- function(rt_profile, moment_power = 1, do.plot = FALSE, sigma_rat
 #' @return A matrix is returned. The columns are: m/z value, retention time, spread (standard deviation of the estimated normal
 #'  curve), and estimated total signal strength (total area of the estimated normal curve).
 #' @export
-prof.to.features <- function(profile,
-                             bandwidth,
-                             min_bandwidth,
-                             max_bandwidth,
-                             sd_cut,
-                             sigma_ratio_lim,
-                             shape_model,
-                             peak_estim_method,
-                             moment_power,
-                             component_eliminate,
-                             BIC_factor,
-                             do.plot) {
+binorm <- function(profile,
+                                 bandwidth,
+                                 min_bandwidth,
+                                 max_bandwidth,
+                                 sd_cut,
+                                 sigma_ratio_lim,
+                                 shape_model,
+                                 peak_estim_method,
+                                 moment_power,
+                                 component_eliminate,
+                                 BIC_factor,
+                                 do.plot) {
   validate_model_method_input(shape_model, peak_estim_method)
-
+  
   profile <- data.frame(profile)
   colnames(profile) <- c("mz", "rt", "intensity", "group_number")
-
-  bws <- preprocess_bandwidth(min_bandwidth, max_bandwidth, profile)
+  
+  bws <- preprocess_bandwidth.new(min_bandwidth, max_bandwidth, profile)
   min_bandwidth <- bws$min_bandwidth
   max_bandwidth <- bws$max_bandwidth
-
+  
   base.curve <- data.frame('rt'=sort(unique(profile$rt))) # sorted unique rt values  
   all_diff_mean_rts <- compute_delta_rt(base.curve$rt) # computes diff of mean values from consecutive values 
   aver_diff <- mean(diff(base.curve$rt))  
-
+  
   keys <- c("mz", "rt", "sd1", "sd2", "area")
   peak_parameters <- matrix(0, nrow = 0, ncol = length(keys), dimnames = list(NULL, keys))
   
   feature_groups <- split(profile, profile$group_number)
-
+  
   # loop over each group
+  results <- vector("list", length(feature_groups))
   for (i in seq_along(feature_groups))
   {
     # init variables
     feature_group <- feature_groups[[i]] |> dplyr::arrange_at("rt") 
-
+    
     num_features <- nrow(feature_group)
     # The estimation procedure for a single peak
     # Defines the dataframe containing median_mz, median_rt, sd1, sd2, and area
@@ -501,12 +512,18 @@ prof.to.features <- function(profile,
       if (bw[1] > 1.5 * min_bandwidth) {
         bw <- c(max(min_bandwidth, bw[1] / 2), bw)
       }
-
-      rt_profile <- compute_chromatographic_profile(feature_group, base.curve)  # returns df with columns: rt, intensity
+      
+      rt_profile <- compute_chromatographic_profile.new(feature_group, base.curve)  # returns df with columns: rt, intensity
       if (shape_model == "Gaussian") {
         rt_peak_shape <- compute_gaussian_peak_shape(rt_profile, bw, component_eliminate, BIC_factor, aver_diff)
-        } else {
-        rt_peak_shape <- bigauss.mix(rt_profile, sigma_ratio_lim = sigma_ratio_lim, bw = bw, moment_power = moment_power, peak_estim_method = peak_estim_method, eliminate = component_eliminate, BIC_factor = BIC_factor)$param[, c(1, 2, 3, 5)]
+      } else {
+        rt_peak_shape <- bigauss.mix.new(rt_profile, sigma_ratio_lim = sigma_ratio_lim, bw = bw, moment_power = moment_power, peak_estim_method = peak_estim_method, eliminate = component_eliminate, BIC_factor = BIC_factor)$param  #[, c(1, 2, 3, 5)]
+        results[[i]] <- list(
+          run_id = i,
+          timestamp = Sys.time(),
+          profile = rt_profile,
+          params = as_tibble(rt_peak_shape)
+        )
       }
       if (is.null(nrow(rt_peak_shape))) {  # only one peak is found
         peak_parameters <- rbind(peak_parameters, c(median(feature_group[,'mz']), rt_peak_shape))
@@ -524,10 +541,22 @@ prof.to.features <- function(profile,
   peak_parameters <- peak_parameters[order(peak_parameters[, "mz"], peak_parameters[, "rt"]), ]
   peak_parameters <- peak_parameters[which(apply(peak_parameters[, c("sd1", "sd2")], 1, min) > sd_cut[1] & apply(peak_parameters[, c("sd1", "sd2")], 1, max) < sd_cut[2]), ]
   rownames(peak_parameters) <- NULL
-
+  
   if (do.plot) {
     plot_peak_summary(feature_groups, peak_parameters)
   }
-
+  library(purrr)
+  
+  results_tbl <- tibble(
+    run_id   = map_int(results, "run_id"),
+    timestamp= map_chr(results, ~ as.character(.x$timestamp)),
+    profile  = map(results, "profile"),
+    params   = map(results, "params")
+  )
+  browser()
+  out_file <- "r_output/all_results.feather"
+  dir.create(dirname(out_file), recursive = TRUE, showWarnings = FALSE)
+  write_feather(results_tbl, out_file, compression = "zstd")
+  
   return(tibble::as_tibble(peak_parameters))
 }
